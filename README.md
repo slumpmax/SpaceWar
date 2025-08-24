@@ -3,7 +3,7 @@
 ![Preview Image](src/images/preview-wide.png)
 
 - The game has 3 stages.
-- Completing a stage unlocks a new ship.
+- Defeating each boss will give you an additional ship.
 - There are power-ups and explosives to collect along the way.
 
 * Use Tauri to compile to many platforms.
