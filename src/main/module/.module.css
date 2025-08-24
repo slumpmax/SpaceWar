@@ -1,0 +1,279 @@
+.body_content {
+  position: absolute;
+  width: 100%;
+  top: 0px;
+  left: 0px;
+}
+.noscroll {
+  overflow: hidden;
+}
+.editdim {
+  visibility: hidden;
+  position: fixed;
+  z-index: 10000;
+  left: 0; 
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgb(0, 0, 0);
+  background-color: rgba(0, 0, 0, 0.6);
+  display: block;
+}
+.editor {
+  visibility: hidden;
+  background-color: #C0E0FF;
+  border: solid #6080C0 5px;
+  border-radius: 6px;
+  text-align: center;
+  position: relative;
+  left: 0px;
+  right: 0px;
+  top: -300px;
+  margin: auto; 
+  padding: 0;
+  width: 330px;
+  height: 64px;
+  opacity: 0;
+  box-sizing: content-box;
+  box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
+  transition: opacity 0.6s, top 0.3s;
+}
+.editor.clear {
+  background-color: rgba(0, 0, 0, 0);
+  border: none;
+  box-shadow: none;
+}
+.editor.full {
+  border: none;
+  border-radius: 0;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  left: 0;
+  top: 0;
+  margin: 0;
+  overflow: hidden;
+  display: block;
+}
+.editor.show {
+  visibility: visible;
+  opacity: 100;
+  top: 40px;
+}
+.editor.full.show {
+  top: 0;
+}
+.editdoc {
+  border: none;
+  position: relative;
+  top: 2px;
+  margin: 0px;
+  padding: 0px;
+}
+.new_button {
+  color: white;
+  background-color: #808060;
+  border: 2px solid #606030;
+  border-radius: 6px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100px;
+  padding: 2px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  text-align: center;
+  cursor: pointer;
+}
+.close_button {
+  z-index: 1;
+  float: right;
+  overflow: visible;
+  width: 16px;
+  height: 16px;
+  color: #808060;
+  padding: 0;
+  border-radius: 6px;
+  margin: 4px;
+  font-size: 28px;
+  text-align: center;
+  vertical-align: middle;
+  cursor: pointer;
+  position: absolute;
+  right: -4px;
+  bottom: 3px;
+  font-weight: bold;
+}
+.close_button:hover, .close_button:focus {
+  color: black;
+  text-decoration: none;
+  cursor: pointer;
+}
+.new_circle {
+  position: fixed;
+  display:block;
+  right: 10px;
+  bottom: 10px;
+  height: 48px;
+  width: 48px;
+  border-radius: 50%;
+  background-color: #FFFFFF;
+  color: #808080;
+  font-size: 36px;
+  text-align: center;
+  line-height: 48px;
+  font-family: Arial;
+  opacity: 0.7;
+  filter: alpha(opacity=70);
+  cursor: pointer;
+  box-shadow: 4px 4px 16px #808080;
+}
+.new_circle:before {
+  content: "+";
+}
+.footer {
+  display: block;
+  text-align: center;
+  vertical-align: middle;
+  margin-top: 16px;
+  margin-bottom: 16px;
+  font-size: 16px;
+  color: #FFFFFF;
+  white-space: nowrap;
+  width: 100%;
+  text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black, 2px 2px 2px black;
+}
+.checkboxcontainer input {
+  display: none;
+}
+.checkboxcontainer {
+  display: inline-block;
+  padding-left: 30px;
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+  margin-right: 8px;
+}
+.checkboxcontainer .checkmark {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  background: white;
+  position: absolute;
+  left: 0;
+  top: 0;
+  border: 1px solid black;
+}
+.checkboxcontainer input:checked + .checkmark {
+  background-color: #E08000;
+  border: 1px solid #E08000;
+}
+.checkboxcontainer input:indeterminate + .checkmark {
+  background-color: #E08000;
+  border: 1px solid #E08000;
+}
+.checkboxcontainer input:checked + .checkmark:after {
+  content: "";
+  position: absolute;
+  height: 6px;
+  width: 11px;
+  border-left: 2px solid white;
+  border-bottom: 2px solid white;
+  top: 45%;
+  left: 50%;
+  -webkit-transform: translate(-50%,-50%) rotate(-45deg);
+  -moz-transform: translate(-50%,-50%) rotate(-45deg);
+  -ms-transform: translate(-50%,-50%) rotate(-45deg);
+  -o-transform: translate(-50%,-50%) rotate(-45deg);
+  transform: translate(-50%,-50%) rotate(-45deg);
+}
+.checkboxcontainer input:checked:disabled + .checkmark {
+    border: 1px solid grey;
+    background-color: grey;
+}
+.checkboxcontainer input:disabled + .checkmark {
+    border: 1px solid grey;
+}
+.checkboxcontainer input:indeterminate + .checkmark:after {
+  content: "";
+  position: absolute;
+  height: 0px;
+  width: 11px;
+  border-left: 2px solid white;
+  border-bottom: 2px solid white;
+  top: 50%;
+  left: 50%;
+  -webkit-transform: translate(-50%,-50%) rotate(180deg);
+  -moz-transform: translate(-50%,-50%) rotate(180deg);
+  -ms-transform: translate(-50%,-50%) rotate(180deg);
+  -o-transform: translate(-50%,-50%) rotate(180deg);
+  transform: translate(-50%,-50%) rotate(180deg);
+}
+.loading_backdrop {
+  position: absolute;
+  display: block;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+.loading_close {
+  position: absolute;
+  display: block;
+  width: 32px;
+  height: 32px;
+  right: 10px;
+  bottom: 10px;
+  border-radius: 4px;
+  color: #404040;
+  background-color: #E0E0E0;
+  cursor: pointer;
+}
+.loading_close:before {
+  content: '✖';
+  font-size: 28px;
+  position: relative;
+  left: 4px;
+  top: -4px;
+  text-align: center;
+}
+.loading {
+  display: block;
+  position: absolute;
+  z-index: 10;
+  left: 50%;
+  top: 50%;
+  background: url('/main/images/@loading.png?v=2');
+  background-size: contain;
+  width: 64px;
+  height: 64px;
+  -webkit-transform: translate(-50%, -50%);
+  -moz-transform: translate(-50%, -50%);
+  -ms-transform: translate(-50%, -50%);
+  -o-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+  animation: spin 1s linear infinite;
+}
+@keyframes spin{
+  from {
+  -webkit-transform: translate(-50%, -50%) rotate(0deg);
+  -moz-transform: translate(-50%, -50%) rotate(0deg);
+  -ms-transform: translate(-50%, -50%) rotate(0deg);
+  -o-transform: translate(-50%, -50%) rotate(0deg);
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+  -webkit-transform: translate(-50%, -50%) rotate(360deg);
+  -moz-transform: translate(-50%, -50%) rotate(360deg);
+  -ms-transform: translate(-50%, -50%) rotate(360deg);
+  -o-transform: translate(-50%, -50%) rotate(360deg);
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+.loading.hide {
+  display: none;
+}
+.loading.show {
+  display: block;
+}
