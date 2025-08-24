@@ -1,5 +1,11 @@
 # Space War - Shooting Game
 
+![alt text](https://github.com/slumpmax/SpaceWar/blob/main/images/preview-wide.png?raw=true)
+
+The game has 3 stages.
+Completing a stage unlocks a new ship.
+There are power-ups and explosives to collect along the way.
+
 Use Tauri to compile to many platforms.
 
 ## Recommended IDE Setup

@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">spacewar</string>
+    <string name="main_activity_title">spacewar</string>
+</resources>
