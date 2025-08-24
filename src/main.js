@@ -671,7 +671,7 @@ function putEnemy() {
 function passGame() {
   if (retrace) passDelay--;
   if (passDelay) {
-    putText(130, 104, `เย้! ผ่านฉาก ${stage} แล้ว`, '#00CB30', '', 0, '', 'center');
+    putText(scene.width / 2, 104, `เย้! ผ่านฉาก ${stage} แล้ว`, '#00CB30', '', 0, '', 'center');
     return false;
   }
   passDelay = 200;
