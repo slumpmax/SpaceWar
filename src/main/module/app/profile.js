@@ -1,7 +1,8 @@
 window.liffinfo = { }
 
 function app_ready(info, app_callback) {
-  let data = {
+  window.source.api({
+    url: '/main/module/app/api.profile',
     base: info.base,
     app: info.app,
     user: info.user.id,
@@ -10,22 +11,15 @@ function app_ready(info, app_callback) {
     href: location.href,
     extras: info.extras,
     inputs: info.inputs,
-  }
-  // request_html({
-    // url: '/main/module/app/api.profile',
-    // data: data,
-    // json: true,
-  // }).then((rsp)=>{
-    // const obj = rsp?.content || {}
-    // Object.assign(info.user, obj.user || {});
-    // Object.assign(info.category, obj.category || {});
-    // Object.assign(info.extras, obj.extras || {});
-    // Object.assign(info.inputs, obj.inputs || {});
-    // liffinfo = info;
-    // if (typeof app_callback == 'function') app_callback(liffinfo);
-  // });
-  liffinfo = info;
-  if (typeof app_callback == 'function') app_callback(liffinfo);
+  }).then((rsp)=>{
+    const obj = rsp?.content || {}
+    Object.assign(info.user, obj.user || {});
+    Object.assign(info.category, obj.category || {});
+    Object.assign(info.extras, obj.extras || {});
+    Object.assign(info.inputs, obj.inputs || {});
+    liffinfo = info;
+    if (typeof app_callback == 'function') app_callback(liffinfo);
+  });
 }
 
 function app_login(url) {

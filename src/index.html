@@ -23,7 +23,6 @@
 <link rel="shortcut icon" href="images/icon-shortcut.ico?v=453e613ced1a68e1959bb98445139aba" type="image/x-icon">
 <link rel="apple-touch-icon" href="images/icon-touch.png?v=beeddd1f4ad3a855e7ab5f5bff6b1d3c" type="image/png">
 <title>สงครามอวกาศ</title>
-<link rel="manifest" href="manifest.json?v=e5e5da2f96a2ac4dc779a62df197bc5b">
 <link rel="stylesheet" type="text/css" href="main/module/.module.css?v=9e957e337cc2f9435c8ffd918cca4849">
 <link rel="stylesheet" type="text/css" href="main/module/ui/source/source.css?v=f7e8b873259e48c93c8650fc93ffe783">
 <link rel="stylesheet" type="text/css" href="main.css?v=7171c7652f90ca2427863e31639cac53">
@@ -43,9 +42,7 @@ body { background-color:  }
 <script src="func.js?v=ce85626318f9d166201f95ee22b09766"></script>
 <script src="main/module/app/profile.js?v=622e5e1e9fa58f56c84ad5cdb9dcbeba"></script>
 <script>
-window.addEventListener('load', ()=>{ app_init('eyJhcHAiOiJnYW1lc1wvc3BhY2V3YXIiLCJiYXNlIjoiY2hhb20iLCJsaWZmX2lkIjoiMTU4MjI3MTUyMy1kZTJyZTU0byIsImxpZmZlZCI6ZmFsc2UsImNhdGVnb3J5Ijp7ImlkIjowLCJuYW1lIjoiY2hhb20iLCJ0b2tlbiI6IiIsImNvb2x0aW1lIjowfSwidXNlciI6eyJpZCI6IlU1MjUyNWQwN2JmNTdjOGIxMDJkMmMzODNmMjA1YWQxYyIsImNvZGUiOjMzLCJuYW1lIjoiISAgIFx1ZDgzY1x1ZGY4OX4qUGxvZW4qflx1ZDgzY1x1ZGY5MzQ5MzYiLCJuaWNrTmFtZSI6Ilx1MGUxZVx1MGUxZSIsInNoYXJlTmFtZSI6InBsYXkiLCJjb2luIjoyMDIsInRpY2tldCI6MCwibHVjayI6MCwic2VjdXJlIjoiNzUzMjc2NjM2NjE2NTg5MjIifSwiaW5wdXRzIjpbXSwiZXh0cmFzIjpbXSwiZGVidWciOnRydWUsInVybCI6Imh0dHBzOlwvXC9sb2NhbGhvc3RcL2FwcFwvY2hhb21cL2dhbWVzXC9zcGFjZXdhciJ9', ()=>{ startApp(); }) })
-</script>
-<script>
+if (!window.__TAURI__) window.__TAURI__ = {};
 if (window.sourceData) window.source = new window.sourceData({
   "_": {
     "uri": "/chaom/games/spacewar",
@@ -56,6 +53,7 @@ if (window.sourceData) window.source = new window.sourceData({
     "secure": "575044455879557079615558706e30664c53646a5557384e44484d346362785741662b38316b48476335546c466b4e49783949516e76344b4e47305170426962595777546e30386f594848446744523945447859397a4c624f57453d_dbe6ee9a116bfdb066be893fad6453e1"
   }
 });
+window.addEventListener('load', ()=>{ app_init('eyJhcHAiOiJnYW1lc1wvc3BhY2V3YXIiLCJiYXNlIjoiY2hhb20iLCJsaWZmX2lkIjoiMTU4MjI3MTUyMy1kZTJyZTU0byIsImxpZmZlZCI6ZmFsc2UsImNhdGVnb3J5Ijp7ImlkIjowLCJuYW1lIjoiY2hhb20iLCJ0b2tlbiI6IiIsImNvb2x0aW1lIjowfSwidXNlciI6eyJpZCI6IlU1MjUyNWQwN2JmNTdjOGIxMDJkMmMzODNmMjA1YWQxYyIsImNvZGUiOjMzLCJuYW1lIjoiISAgIFx1ZDgzY1x1ZGY4OX4qUGxvZW4qflx1ZDgzY1x1ZGY5MzQ5MzYiLCJuaWNrTmFtZSI6Ilx1MGUxZVx1MGUxZSIsInNoYXJlTmFtZSI6InBsYXkiLCJjb2luIjoyMDIsInRpY2tldCI6MCwibHVjayI6MCwic2VjdXJlIjoiNzUzMjc2NjM2NjE2NTg5MjIifSwiaW5wdXRzIjpbXSwiZXh0cmFzIjpbXSwiZGVidWciOnRydWUsInVybCI6Imh0dHBzOlwvXC9sb2NhbGhvc3RcL2FwcFwvY2hhb21cL2dhbWVzXC9zcGFjZXdhciJ9', ()=>{ startApp(); }) })
 </script>
 </head>
 <body>

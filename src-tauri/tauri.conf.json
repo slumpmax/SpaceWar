@@ -10,7 +10,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "spacewar",
+        "title": "Space War",
         "width": 800,
         "height": 600
       }

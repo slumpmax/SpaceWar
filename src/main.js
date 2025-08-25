@@ -73,7 +73,7 @@ function drawScene(updated) {
       putText(px, 64, 'CTRL:ยิง ALT:ระเบิด', '#00CB30', '', 0, '', 'center');
       putText(px, 84, 'F1:เฟรมเรต ESC:เริ่มใหม่', '#00CB30', '', 0, '', 'center');
       putText(px, 164, 'กดอะไรก็ได้เพื่อเริ่มเกมส์', '#00CB30', '', 0, '', 'center');
-      if (mainKey.lastKeyDown) {
+      if (mainKey.lastKeyDown && navigator.userActivation.isActive) {
         stage++;
         updateSong(song.stages[stage - 1]);
       }
@@ -231,7 +231,7 @@ function putRocket() {
 }
 // check and draw gun
 function gun() {
-  shoot = shoot | mainKey.values(17); // CTRL
+  shoot |= mainKey.values(17) && stage; // CTRL
   if (!shoot || power < 0) return;
   if (retrace) {
     if (shoot == 1) {
@@ -249,7 +249,7 @@ function gun() {
 // bomb enermy
 function toom() {
   let i = 0;
-  if (!mainKey.pressOnce(18 /*ALT*/) || !bomb) return;
+  if (!mainKey.pressOnce(18 /*ALT*/) || !bomb || !stage) return;
   if (enemys[0].id >= 11 && enemys[0].id <= 13) {
     if (enemys[0].hp <= 0) return;
     i++;
@@ -279,7 +279,7 @@ function beat(i) {
 // return 1 when rocket hit sprite
   return power >= 0 && enemys[i].hit(rocket1, xRocket, yRocket, 10);
 }
-function touched(x, y, spr, px, py, offset) {
+function caught(x, y, spr, px, py, offset) {
   if (!offset) offset = 0;
   const bw = Math.max(0, scene.picX(spr.w) / 2 - offset);
   const bh = Math.max(0, scene.picY(spr.h) / 2 - offset);
@@ -789,6 +789,8 @@ function initData() {
   boom = false;
   started = true;
   showFPS = false;
+  padDowned = false;
+  lastPadX = lastPadY = 0;
   for (n = 0; n < 20; n++) enemys[n].id = 0;
   retrace = true;
   for (n = 0; n < scene.height; n++) putStar(); // dummy for random star
@@ -823,17 +825,8 @@ function initGame() {
   }
   initData();
 }
-function jump() {
-  return;
-  if (!over && (!player.state || player.state == 3)) {
-    player.gravity = -20;
-    player.cooldown = 0;
-    player.setState(1);
-    player.y -= 40;
-  }
-}
-function keyDown(event) {
-  switch (event.keyCode) {
+function keyDown(e) {
+  switch (e.keyCode) {
   case 112: // F1
     showFPS = !showFPS;
     break;
@@ -842,23 +835,22 @@ function keyDown(event) {
     updateSong(song.last);
     break;
   case 27: // ESC
+    sound.theme.stop();
     initData();
     break;
   default:
-    mainKey.update(event.keyCode, true);
+    mainKey.update(e.keyCode, true);
   }
-  event.preventDefault();
+  e.preventDefault();
 }
-function keyUp() {
-  mainKey.update(event.keyCode, false);
-  event.preventDefault();
+function keyUp(e) {
+  mainKey.update(e.keyCode, false);
+  e.preventDefault();
 }
-function doTouchPad(event, pressed, moved) {
+function virtualPad(e, px, py, pressed, moved) {
   if (scene.wide) return;
-  event.preventDefault();
-  const px = scene.clientX(event.changedTouches[0].clientX);
-  const py = scene.clientY(event.changedTouches[0].clientY);
-  if (touched(px, py, touchPad, xTouchPad, yTouchPad)) {
+  e.preventDefault();
+  if (caught(px, py, touchPad, xTouchPad, yTouchPad)) {
     const tx = px - xTouchPad;
     const ty = py - yTouchPad;
     const kx = Math.abs(tx) > scene.picX(touchPad.w / 10);
@@ -884,37 +876,33 @@ function doTouchPad(event, pressed, moved) {
         mainKey.update(40, pressed);
       }
     }
+    padDowned = pressed;
+    lastPadX = px;
+    lastPadY = py;
+  } else if (!pressed && caught(lastPadX, lastPadY, touchPad, xTouchPad, yTouchPad)) {
+    mainKey.update(37, false);
+    mainKey.update(38, false);
+    mainKey.update(39, false);
+    mainKey.update(40, false);
+    padDowned = false;
   }
   if (!moved) {
-    if (touched(px, py, touchButton, xTouchShoot, yTouchShoot)) mainKey.update(17, pressed);
-    if (touched(px, py, touchButton, xTouchBomb, yTouchBomb)) mainKey.update(18, pressed);
+    if (caught(px, py, touchButton, xTouchShoot, yTouchShoot)) mainKey.update(17, pressed);
+    if (caught(px, py, touchButton, xTouchBomb, yTouchBomb)) mainKey.update(18, pressed);
   }
 }
-function touchMe(event) {
-  doTouchPad(event, true);
+function pressMe(e, pressed, moved) {
+  if (moved && !padDowned) return;
+  const px = scene.clientX(e.clientX);
+  const py = scene.clientY(e.clientY);
+  virtualPad(e, px, py, pressed, moved);
 }
-function moveMe(event) {
-  doTouchPad(event, true, true);
-}
-function untouchMe(event) {
-  doTouchPad(event, false);
-  return;
-
-
-  if (scene.wide) return;
-  const px = scene.clientX(event.changedTouches[0].clientX);
-  const py = scene.clientY(event.changedTouches[0].clientY);
-  if (touched(px, py, touchPad, xTouchPad, yTouchPad)) {
-    const tx = px - xTouchPad;
-    const ty = py - yTouchPad;
-    const bx = scene.picX(touchPad.w / 10);
-    const by = scene.picY(touchPad.h / 10);
-    if (Math.abs(tx) > bx) mainKey.update(tx < 0 ? 37: 39, false);
-    if (Math.abs(ty) > by) mainKey.update(ty < 0 ? 38: 40, false);
+function touchMe(e, pressed, moved) {
+  for (let k in e.changedTouches) {
+    const px = scene.clientX(e.changedTouches[k].clientX);
+    const py = scene.clientY(e.changedTouches[k].clientY);
+    virtualPad(e, px, py, pressed, moved);
   }
-  if (touched(px, py, touchButton, xTouchShoot, yTouchShoot)) mainKey.update(17, false);
-  if (touched(px, py, touchButton, xTouchBomb, yTouchBomb)) mainKey.update(18, false);
-  event.preventDefault();
 }
 function adjustWindow() {
   canvas.width = window.innerWidth;
@@ -943,10 +931,12 @@ function startApp() {
   context.textAlign = 'left';
   window.addEventListener('resize', resizeWindow);
   window.addEventListener('orientationchange', resizeWindow);
-  canvas.addEventListener('touchstart', touchMe);
-  canvas.addEventListener('touchmove', moveMe);
-  canvas.addEventListener('touchend', untouchMe);
-  canvas.addEventListener('mousedown', jump);
+  canvas.addEventListener('touchstart', ()=>{ touchMe(event, true) });
+  canvas.addEventListener('touchmove', ()=>{ touchMe(event, true, true) });
+  canvas.addEventListener('touchend', ()=>{ touchMe(event, false) });
+  canvas.addEventListener('mousedown', ()=>{ pressMe(event, true) });
+  canvas.addEventListener('mousemove', ()=>{ pressMe(event, true, true) });
+  canvas.addEventListener('mouseup', ()=>{ pressMe(event, false) });
   window.addEventListener('keydown', keyDown);
   window.addEventListener('keyup', keyUp);
   window.focus();

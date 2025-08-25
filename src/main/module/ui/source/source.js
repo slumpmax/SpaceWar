@@ -39,10 +39,16 @@ function sourceData(args) {
       typeback: args.typeback || '',
       json: true,
     }
+    if (typeof window.__TAURI__ == 'object') return window.__TAURI__.core?.invoke == 'function' ? window.__TAURI__.core.invoke(args.api || '', data) : this.invoke(data);
     if (typeof callback == 'function') {
       data.callback = callback;
       request_html(data);
     } else return request_html(data);
+  }
+  this.invoke = (data)=>{
+    return new Promise(function(resolve, reject) {
+      resolve();
+    });
   }
   this.embed = (editor, args)=>{
     if (args == undefined) args = {};
