@@ -25,6 +25,12 @@ class customAudio {
       this.#timeout = setTimeout(()=>{ this.play(forced, looped) }, 100);
     } else if (this.delay > 0) this.delay--;
   }
+  pause(paused) {
+    if (paused == undefined) paused = true;
+    if (paused) {
+      this.obj.pause();
+    } else this.obj.play();
+  }
   stop() {
     if (this.#timeout) {
       clearTimeout(this.#timeout);

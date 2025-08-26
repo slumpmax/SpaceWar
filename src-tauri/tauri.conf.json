@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "spacewar",
+  "productName": "space-war",
   "version": "0.1.0",
-  "identifier": "com.tom.spacewar",
+  "identifier": "com.tom.space-war",
   "build": {
     "frontendDist": "../src"
   },
@@ -10,7 +10,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "Space War",
+        "title": "space-war",
         "width": 800,
         "height": 600
       }

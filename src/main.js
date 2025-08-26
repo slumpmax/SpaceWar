@@ -18,6 +18,7 @@
   6,3,2,3,3,6,2,6,3,2,1,6,3,3,6,1,3,6,1,1,6,1,2,2,6,3,2,3,1,6,2,
   11
 ];
+const fontname = 'Noto Sans Thai';
 const enemyScores = [500,75,2000,15,7000000,0,100000,0,0,0,10000,300000,10000000];
 const rocket = {
   move: 0,    // variable for start rocket
@@ -52,7 +53,7 @@ const song = {
   stages: [1, 8, 9],
 }
 function drawScene(updated) {
-  if (customImage.loading) return;
+  if (customImage.loading || !fontLoaded) return;
   if (updated == undefined) updated = true;
   retrace = mainTime.oneCount && updated;
   context.fillStyle = '#000000';
@@ -70,17 +71,20 @@ function drawScene(updated) {
       if (titleDelay) putText(px, 84, `ฉาก ${stage} สู้ตายเพื่อท่านปึ๋ย!`, '#00CB30', '', 0, '', 'center');
     }
     if (!stage) {
-      putText(px, 64, 'CTRL:ยิง ALT:ระเบิด', '#00CB30', '', 0, '', 'center');
-      putText(px, 84, 'F1:เฟรมเรต ESC:เริ่มใหม่', '#00CB30', '', 0, '', 'center');
-      putText(px, 164, 'กดอะไรก็ได้เพื่อเริ่มเกมส์', '#00CB30', '', 0, '', 'center');
-      if (mainKey.lastKeyDown && navigator.userActivation.isActive) {
+      if (scene.wide) {
+        putText(px, 64, 'CTRL:ยิง ALT:ระเบิด', '#00CB30', '', 0, '', 'center');
+        putText(px, 84, 'F1:เฟรมเรต ESC:เริ่มใหม่', '#00CB30', '', 0, '', 'center');
+        putText(px, 164, 'กดอะไรก็ได้เพื่อเริ่มเกมส์', '#00CB30', '', 0, '', 'center');
+      } else putText(px, 84, 'กดอะไรก็ได้เพื่อเริ่มเกมส์', '#00CB30', '', 0, '', 'center');
+      if (!paused && mainKey.lastKeyDown && navigator.userActivation.isActive) {
         stage++;
         updateSong(song.stages[stage - 1]);
       }
     } else if (stage > 3) {
       putText(px, 84, 'ดูเด่ะ เล่นมาตั้งนาน จบเฉยเลย', '#00CB30', '', 0, '', 'center');
       putText(px, 109, 'โปรแกรมโดย เชษฐา เจนจิโรจพิพัฒน์', '#00CB30', '', 0, '', 'center');
-      putText(px, 134, 'Windows Engine by SLUMPMAX', '#00CB30', '', 0, '', 'center');
+      putText(px, 134, 'Modified Engine by SLUMPMAX', '#00CB30', '', 0, '', 'center');
+      replay();
     } else if (putEnemy()) if (passGame()) started = true;
     if (life) {
       putRocket();
@@ -90,14 +94,15 @@ function drawScene(updated) {
       yRocket = 300;
       putText(px, 84, 'นักรบพลีชีพหมดแล้ว ท่านปึ๋ยจงเจริญ!', '#00CB30', '', 0, '', 'center');
       putText(px, 109, 'โปรแกรมโดย เชษฐา เจนจิโรจพิพัฒน์', '#00CB30', '', 0, '', 'center');
-      putText(px, 134, 'Windows Engine by SLUMPMAX', '#00CB30', '', 0, '', 'center');
+      putText(px, 134, 'Modified Engine by SLUMPMAX', '#00CB30', '', 0, '', 'center');
+      replay();
     }
   }
   if (showFPS) putText(10, 17, `Frame Rate: ${Number(mainFrameRate.update()).toFixed(2)} FPS`, '#FFFFFF', '#000000', 10);
   drawStatus();
   xTouchPad = scene.picX(20) + scene.picX(touchPad.w) / 2;
   yTouchPad = scene.height - scene.picY(40) - scene.picY(touchPad.h) / 2;
-  xTouchShoot = scene.width - scene.picX(20) - scene.picX(touchButton.w) / 2;
+  xTouchShoot = scene.width - scene.picX(30) - scene.picX(touchButton.w) / 2;
   yTouchShoot = scene.height - scene.picY(50) - scene.picY(touchButton.h) / 2;
   xTouchBomb = scene.width - scene.picX(20) - scene.picX(touchButton.w) / 2;
   yTouchBomb = scene.height - scene.picY(70) - scene.picY(touchButton.h) * 3 / 2;
@@ -160,8 +165,20 @@ function showPow() {
     fillRect(px + 29 + n-- * 4, py, 3, h, '#FFFF65');
   }
 }
+function replay() {
+  xReplayPad = scene.width / 2;
+  yReplayPad = scene.height / 2 + scene.picY(80);
+  wReplayPad = 160;
+  hReplayPad = scene.picY(44);
+  context.globalAlpha = 0.3;
+  fillRect(xReplayPad - wReplayPad / 2, yReplayPad - hReplayPad / 2, wReplayPad, hReplayPad, '#FFFFFF', scene.picY(20));
+  context.globalAlpha = 1.0;
+  putText(xReplayPad, yReplayPad + scene.picY(7), 'กดเพื่อเริ่มใหม่', '#FFFFFF', '', 24, '', 'center');
+  replayed = true;
+}
 // draw black ground star
 function putStar() {
+  if (customImage.loading || !fontLoaded) return;
   let j, p, i = 0, n = 0;
   while (i < scene.height) {
     j = i + yStar;
@@ -178,7 +195,7 @@ function putStar() {
 }
 // draw my rocket
 function putRocket() {
-  if (damage == 200) {
+  if (damage == 200 && !paused) {
     rocket.move = 70;
     power = 11;
   }
@@ -201,19 +218,21 @@ function putRocket() {
       }
     }
   } else {
-  	xOld = xRocket;
-    yOld = yRocket;
-  	if (rocket.move) {
-      xRocket = scene.width / 2;
-      yRocket = scene.height / 2 + rocket.move * 2;
-    }
-    if (retrace) {
-      const step = scene.wide ? 3 : 6;
-      if (rocket.move) rocket.move--;
-      xRocket = xRocket + (mainKey.values(39 /*RIGHT*/) - mainKey.values(37 /*LEFT*/)) * scene.picX(step);
-      yRocket = yRocket + (mainKey.values(40 /*DOWN*/) - mainKey.values(38 /*UP*/)) * scene.picY(step);
-	    if (xRocket < 0 || xRocket >= scene.width) xRocket = xOld;
- 	    if (yRocket < scene.picY(rocket1.h) / 2 || yRocket > scene.height - scene.picY(rocket1.h) / 2) yRocket = yOld;
+    if (!paused) {
+      xOld = xRocket;
+      yOld = yRocket;
+      if (rocket.move) {
+        xRocket = scene.width / 2;
+        yRocket = scene.height / 2 + rocket.move * 2;
+      }
+      if (retrace) {
+        const step = scene.wide ? 3 : 6;
+        if (rocket.move) rocket.move--;
+        xRocket = xRocket + (mainKey.values(39 /*RIGHT*/) - mainKey.values(37 /*LEFT*/)) * scene.picX(step);
+        yRocket = yRocket + (mainKey.values(40 /*DOWN*/) - mainKey.values(38 /*UP*/)) * scene.picY(step);
+        if (xRocket < 0 || xRocket >= scene.width) xRocket = xOld;
+        if (yRocket < scene.picY(rocket1.h) / 2 || yRocket > scene.height - scene.picY(rocket1.h) / 2) yRocket = yOld;
+      }
     }
   	if ((damage & 3) == 1) {
       if ((rocket.swap & 4) > 0)
@@ -223,7 +242,7 @@ function putRocket() {
       putSprite(xRocket, yRocket, rocket1)
     else putSprite(xRocket, yRocket, rocket2);
   }
-  if (retrace) {
+  if (retrace && !paused) {
     if (damage == 40) power--;
     if (damage) damage--;
     rocket.swap++;
@@ -232,24 +251,26 @@ function putRocket() {
 // check and draw gun
 function gun() {
   shoot |= mainKey.values(17) && stage; // CTRL
-  if (!shoot || power < 0) return;
-  if (retrace) {
-    if (shoot == 1) {
-      shoot = 2;
-      xGun = xRocket;
-      yGun = yRocket;
+  if (!paused) {
+    if (!shoot || power < 0) return;
+    if (retrace) {
+      if (shoot == 1) {
+        shoot = 2;
+        xGun = xRocket;
+        yGun = yRocket;
+      }
+      yGun -= 20;
+      if (yGun < -10) shoot = 0;
     }
-    yGun -= 20;
-    if (yGun < -10) shoot = 0;
+    sound.shot.play();
+    if (yGun != yRocket - 6) putSprite(xGun, yGun + 10, myGun);
   }
   putSprite(xGun, yGun, myGun, true);
-  sound.shot.play();
-  if (yGun != yRocket - 6) putSprite(xGun, yGun + 10, myGun);
 }
 // bomb enermy
 function toom() {
   let i = 0;
-  if (!mainKey.pressOnce(18 /*ALT*/) || !bomb || !stage) return;
+  if (!mainKey.pressOnce(18 /*ALT*/) || !bomb || !stage || paused) return;
   if (enemys[0].id >= 11 && enemys[0].id <= 13) {
     if (enemys[0].hp <= 0) return;
     i++;
@@ -372,6 +393,7 @@ function newEnemy(i) {
   }
 }
 function moveEnemy(i) {
+  if (paused || !retrace) return;
   let hurt = strike = dead = false;
   let j = 0;
   if (enemys[i].id < 0) {
@@ -605,7 +627,7 @@ function putEnemySprite(i) {
 // return True when stage clear
 function putEnemy() {
   for (let i = 0; i < 20; i++) {
-    if (enemys[i].id) {
+    if (enemys[i].id && !paused) {
     	if (enemys[i].y < -50 || enemys[i].y > scene.height + 50 || enemys[i].x < -50 || enemys[i].x > scene.width + 50) {
   	    if (enemys[i].id < 11 || enemys[i].id > 13) {
           enemys[i].id = 0;
@@ -621,9 +643,9 @@ function putEnemy() {
       }
     }
     putEnemySprite(i);
-    if (retrace) moveEnemy(i);
+    moveEnemy(i);
   }
-  if (!retrace) return false;
+  if (!retrace || paused) return false;
   if (enemyDelay) {
     enemyDelay--;
   } else {
@@ -669,6 +691,7 @@ function putEnemy() {
 }
 // state clear return True when ready
 function passGame() {
+  if (paused) return false;
   if (retrace) passDelay--;
   if (passDelay) {
     putText(scene.width / 2, 104, `เย้! ผ่านฉาก ${stage} แล้ว`, '#00CB30', '', 0, '', 'center');
@@ -718,7 +741,7 @@ function putText(px, py, text, color, border, size, style, align) {
   if (!size) size = 13;
   style = style ? `${style} ` : '';
   size = scene.calc(size);
-  context.font = `${style}${size}px Tahoma`;
+  context.font = `${style}${size}px ${fontname}`;
   context.textAlign = align || 'left';
   context.textBaseline = 'alphabetic';
   px = scene.calcX(px);
@@ -734,13 +757,17 @@ function putNumber(px, py, num, color, digit, border, size, style, align) {
   if (digit) num = String(num).padStart(digit, '0');
   putText(px, py, num, color, border, size, style, align);
 }
-function fillRect(x, y, w, h, color) {
+function fillRect(x, y, w, h, color, radius) {
   context.fillStyle = color;
   x = scene.calcX(x);
   y = scene.calcY(y);
   w = scene.calcX(w);
   h = scene.calcY(h);
-  context.fillRect(x, y, w, h);
+  if (radius) {
+    context.beginPath();
+    context.roundRect(x, y, w, h, radius);
+    context.fill();
+  } else context.fillRect(x, y, w, h);
 }
 function randomInt(count) {
   return Math.floor(Math.random() * count);
@@ -761,14 +788,22 @@ function updateGame() {
   requestAnimFrame(updateGame);
 }
 function startGame() {
-  if (customImage.loading)
+  if (customImage.loading || !fontLoaded) {
+    // context.fillStyle = '#000000';
+    // context.fillRect(0, 0, canvas.width, canvas.height);
     requestAnimFrame(startGame)
-  else {
+  } else {
     adjustWindow();
     updateGame();
   }
 }
 function initData() {
+  replayed = false;
+  started = true;
+  boom = false;
+  showFPS = false;
+  padDowned = false;
+  paused = false;
   rocket.boom = 100;
   rocket.swap = rocket.move = 0;
   enemyIndex = 0;
@@ -786,11 +821,12 @@ function initData() {
   enemyDelay = 200;
   passDelay = 200;
   titleDelay = 200;
-  boom = false;
-  started = true;
-  showFPS = false;
-  padDowned = false;
   lastPadX = lastPadY = 0;
+  xTouchPad = yTouchPad = 0;
+  xTouchShoot = yTouchShoot = 0;
+  xTouchBomb = yTouchBomb = 0;
+  xReplayPad = yReplayPad = 0;
+  wReplayPad = hReplayPad = 0;
   for (n = 0; n < 20; n++) enemys[n].id = 0;
   retrace = true;
   for (n = 0; n < scene.height; n++) putStar(); // dummy for random star
@@ -823,6 +859,14 @@ function initGame() {
     bomb: new customAudio('audios/bomb1.mp3', 0.5, 0),
     theme: new customAudio('audios/theme01.mp3', 0.5, 0),
   }
+  fontLoaded = false;
+  mainFont = new FontFace('Noto Sans Thai', 'url(fonts/NotoSansThai-VariableFont_wdth,wght.ttf)');
+  mainFont.load().then((ff)=>{
+    document.fonts.add(ff);
+    fontLoaded = true;
+  }).catch((error)=>{
+    fontLoaded = true;
+  });
   initData();
 }
 function keyDown(e) {
@@ -848,15 +892,23 @@ function keyUp(e) {
   e.preventDefault();
 }
 function virtualPad(e, px, py, pressed, moved) {
-  if (scene.wide) return;
   e.preventDefault();
+  const w = wReplayPad / 2;
+  const h = hReplayPad / 2;
+  if (replayed && px >= xReplayPad - w && px <= xReplayPad + w
+    && py >= yReplayPad - h && py <= yReplayPad + h)
+  {
+    sound.theme.stop();
+    initData();
+  }
+  if (scene.wide) return;
   if (caught(px, py, touchPad, xTouchPad, yTouchPad)) {
     const tx = px - xTouchPad;
     const ty = py - yTouchPad;
     const kx = Math.abs(tx) > scene.picX(touchPad.w / 10);
     const ky = Math.abs(ty) > scene.picY(touchPad.h / 10);
-    const lx = Math.abs(tx) > scene.picX(touchPad.w / 16);
-    const ly = Math.abs(ty) > scene.picY(touchPad.h / 16);
+    const lx = Math.abs(tx) > scene.picX(touchPad.w / 14);
+    const ly = Math.abs(ty) > scene.picY(touchPad.h / 14);
     mainKey.update(37, tx < 0 && kx ? pressed : false);
     mainKey.update(39, tx > 0 && kx ? pressed : false);
     mainKey.update(38, ty < 0 && ky ? pressed : false);
@@ -904,7 +956,23 @@ function touchMe(e, pressed, moved) {
     virtualPad(e, px, py, pressed, moved);
   }
 }
+function focusMe(e) {
+  if (paused) sound.theme.pause(paused = false);
+}
+function blurMe(e) {
+  if (!paused && stage) {
+    sound.theme.pause(paused = true);
+    padDowned = false;
+    mainKey.clear();
+  }
+}
+function seeMe(e) {
+  if (document.hidden) blurMe(e);
+  else focusMe(e);
+}
 function adjustWindow() {
+  const owide = scene.wide;
+  let ow = scene.width;
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
   scene.xScale = canvas.width / scene.wScreen;
@@ -915,10 +983,16 @@ function adjustWindow() {
   for (let n = 0; n < mainSprites.length; n++) {
     mainSprites[n].setScale(scene.picScale);
   }
+  if (owide != scene.wide) {
+    ow = scene.width / ow
+    for (let n in cStars) cStars[n] *= ow;
+    for (let n in enemys) enemys[n].x *= ow;
+    xRocket *= ow;
+  }
 }
 function resizeWindow() {
   adjustWindow();
-  drawScene();
+  drawScene(true);
 }
 function startApp() {
   canvas = document.getElementById('main_canvas');
@@ -939,6 +1013,9 @@ function startApp() {
   canvas.addEventListener('mouseup', ()=>{ pressMe(event, false) });
   window.addEventListener('keydown', keyDown);
   window.addEventListener('keyup', keyUp);
+  window.addEventListener('focus', focusMe);
+  window.addEventListener('blur', blurMe);
+  window.addEventListener('visibilitychange', seeMe);
   window.focus();
   initGame();
   startGame();

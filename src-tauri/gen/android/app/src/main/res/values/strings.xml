@@ -1,4 +1,4 @@
 <resources>
-    <string name="app_name">spacewar</string>
-    <string name="main_activity_title">spacewar</string>
+    <string name="app_name">space-war</string>
+    <string name="main_activity_title">space-war</string>
 </resources>

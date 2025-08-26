@@ -1,4 +1,4 @@
-/src/main/java/com/tom/spacewar/generated
+/src/main/java/com/tom/space_war/generated
 /src/main/jniLibs/**/*.so
 /src/main/assets/tauri.conf.json
 /tauri.build.gradle.kts
