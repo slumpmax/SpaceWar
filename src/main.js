@@ -250,10 +250,11 @@ function putRocket() {
 }
 // check and draw gun
 function gun() {
-  shoot |= mainKey.values(17) && stage; // CTRL
-  if (!paused) {
+  if (!paused && stage) {
+    shoot |= mainKey.values(17); // CTRL
     if (!shoot || power < 0) return;
     if (retrace) {
+      sound.shot.play();
       if (shoot == 1) {
         shoot = 2;
         xGun = xRocket;
@@ -262,7 +263,6 @@ function gun() {
       yGun -= 20;
       if (yGun < -10) shoot = 0;
     }
-    sound.shot.play();
     if (yGun != yRocket - 6) putSprite(xGun, yGun + 10, myGun);
   }
   putSprite(xGun, yGun, myGun, true);
