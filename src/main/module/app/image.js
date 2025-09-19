@@ -2,6 +2,7 @@ window.customImage.loading = 0;
 window.customImage.globalDebug = false;
 function customImage(img) {
   if (img == undefined) img = {}
+  if (typeof img == 'string') img = { src: img }
   let self = new Image();
   let scale = img.scale != undefined ? img.scale : 1.0;
   self.scaleX = img.scaleX != undefined ? img.scaleX : scale;
@@ -273,10 +274,22 @@ function customImage(img) {
   }
   return self;
 }
-function customImages(count, img) {
+function customImages() {
   this.images = [];
-  while (count--) {
-    this.images.push(new customImage(img));
+  if (typeof arguments[0] == 'string') {
+    const format = arguments[0] || '';
+    let num = arguments[1] || 0;
+    let last = arguments[2] || 0;
+    const pad = arguments[3] || 0;
+    while (num <= last) {
+      const name = format.replace(/\{\}/, String(num).padStart(pad, '0'));
+      this.images.push(new customImage(name));
+      num++;
+    }
+  } else {
+    let count = arguments[0] || 0;
+    const img = arguments[1] || {}
+    while (count--) this.images.push(new customImage(img));
   }
   this.length = function() {
     return this.images.length;
