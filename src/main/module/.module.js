@@ -77,7 +77,6 @@ function embed_dialog(container, args) {
     request_html({
       url: args.url,
       data: args.data,
-      json: false,
     }).then((rsp)=>{
       if (rsp.status == 200) {
         frame.srcdoc = rsp.content;
@@ -273,11 +272,10 @@ function open_dialog(args) {
         request_html({
           url: args.url,
           data: args.data,
-          json: false,
         }).then((rsp)=>{
           if (rsp.status == 200) {
             edit_doc.srcdoc = rsp.content;
-            adjust_dlg_height(true, 0, args.visible);
+            adjust_dlg_height(true, 0, false && args.visible);
           }
         });
       };
@@ -521,79 +519,58 @@ function hide_progress() {
 }
 
 function request_headers(url, callback) {
-  let request = new XMLHttpRequest();
-  request.open('HEAD', url, true);
-  request.onload = function () {
-    let headers = request.getAllResponseHeaders();
-    let arr = headers.trim().split(/[\r\n]+/);
-    let headerMap = {};
-    arr.forEach(function(line) {
-      let parts = line.split(': ');
-      let header = parts.shift();
-      let value = parts.join(': ');
-      headerMap[header] = value;
+  return new Promise(function(resolve, reject) {
+    fetch(url, { method: 'HEAD' }).then(rsp=>{
+      resolve({ headers: rsp.headers, ok: rsp.ok, status: rsp.status, statusText: rsp.statusText });
+    }).catch(error=>{
+      reject({ error: error });
     });
-    callback(headerMap, request.status);
-  }
-  request.send();
+  });
 }
 
 function request_html(args) {
-  let pm = new Promise(function(resolve, reject) {
-    let headers = false;
-    if (args.data == undefined) args.data = false;
-    if (args.json == undefined) args.json = false;
-    if (args.binary == undefined) args.binary = false;
-    if (args.headers == undefined) args.headers = false;
+  return new Promise(function(resolve, reject) {
+    const options = {}
     args.url = build_url(args.url, args.query);
-    if (typeof(args.data) == 'object') {
-      args.data = json_encode(args.data);
-    }
-    let request = new XMLHttpRequest();
-    if (args.binary) {
-      request.responseType = 'arraybuffer';
-    } else if (args.typeback) request.responseType = args.typeback;
+    if (args.headers) options.headers = args.headers;
+    if (typeof(args.data) == 'object') args.data = json_encode(args.data);
     if (args.data) {
-      request.open('POST', args.url, true);
-      request.setRequestHeader("Content-type", "application/json; charset=utf-8");
-    } else {
-      request.open('GET', args.url, true);
-    }
-    if (args.headers) for (header in args.headers) request.setRequestHeader(header, args.headers[header]);
-    request.timeout = 0;
-    request.addEventListener('load', function () {
-      let response = this.response;
-      let error = false;
-      if (args.json) try {
-        response = JSON.parse(response.replace(/^\s+|\s+$/g, ''));
-      } catch(err) {
-        error = err.message;
-        $debug.log(error, this.response);
+      options.method = 'POST';
+      options.body = args.data;
+      options.headers = {...options.headers, "Content-Type": "application/json; charset=utf-8"};
+    } else options.method = 'GET';
+    fetch(args.url, options).then(rsp=>{
+      if (!rsp.ok) {
+        resolve({ error: `${rsp.status}: ${rsp.statusText}` });
+        return;
       }
-      resolve({ content: response, status: request.status, error: error });
-    });
-    if (args.callback_state) {
-      request.addEventListener('readystatechange', function (e) {
-        const state = ['UNSENT', 'OPENED', 'HEADERS_RECEIVED', 'LOADING', 'DONE'];
-        args.callback_state({state: request.readyState, text: state[request.readyState]});
+      let rdata;
+      switch (args.type || false) {
+        case 'arraybuffer': rdata = rsp.arrayBuffer(); break;
+        case 'blob': rdata = rsp.blob(); break;
+        case 'bytes': rdata = rsp.bytes(); break;
+        case 'clone': rdata = rsp.clone(); break;
+        case 'form': rdata = rsp.formData(); break;
+        case 'json': rdata = rsp.text(); break;
+        default: rdata = rsp.text();
+      }
+      rdata.then(data=>{
+        if (args.type == 'json') {
+          try {
+            data = JSON.parse(data.replace(/^\s+|\s+$/g, ''));
+          } catch(err) {
+            const error = err.message;
+            $debug.log(error, data);
+          }
+        }
+        resolve({ content: data, ok: rsp.ok, status: rsp.status, statusText: rsp.statusText, error: rsp.ok ? false : `${rsp.status}: ${rsp.statusText}` });
+      }).catch(error=>{
+        reject({ error: error });
       });
-    }
-    request.addEventListener('error', function (e) {
-      reject({ status: request.status, error: `"${e.type}: ${e.loaded}"` });
-    });
-    if (args.data) {
-      request.send(args.data);
-    } else request.send();
+    }).catch(error=>{
+      reject({ error: error });
+    })
   });
-  if (typeof(args.callback) == 'function') {
-    pm.then((obj)=>{
-      args.callback(obj.content, obj.status, obj.error);
-    }).catch((obj)=>{
-      if (args.callback_error) args.callback_error(obj.error);
-    });
-  } else {
-    return pm;
-  }
 }
 
 function request_queue(url, data, use_json, callback, callback_end) {
@@ -620,7 +597,7 @@ function request_queue(url, data, use_json, callback, callback_end) {
       request_html({
         url: qdata.url,
         data: qdata.data,
-        json: qdata.json,
+        type: qdata.json ? 'json' : 'text',
       }).then((rsp)=>{
         qdata.callback(rsp.content, rsp.status);
         setTimeout(request_queue, 1);
@@ -637,14 +614,11 @@ function require_script(url, refresh, callback) {
   request_html({
     url: url,
     data: false,
-    json: false,
-    callback: function(obj, status) {
-      let e = document.createElement('script');
-      e.text = obj;
-      document.body.appendChild(e);
-      // eval(obj);
-      if (callback) callback();
-    },
+  }).then(rsp=>{
+    let e = document.createElement('script');
+    e.text = rsp?.content || {};
+    document.body.appendChild(e);
+    if (callback) callback();
   });
 }
 
@@ -882,7 +856,8 @@ window.requestAnimFrame = (function(){
 function canTouched() {
   return ('ontouchstart' in window)
     || (navigator.maxTouchPoints > 0)
-    || (navigator.msMaxTouchPoints > 0);
+    || (navigator.msMaxTouchPoints > 0)
+    || window.matchMedia("(any-pointer: coarse)").matches;
 }
 
 function draw_canvas_sticker(cv, url, size, angle, align, text_color, bg_color, text, x, y) {
@@ -1227,7 +1202,9 @@ Object.defineProperty($debug , "output", {
   configurable: false,
   enumerable: false,
   writable: false,
-  value: function(text) { document.body.innerHTML += text.toString() },
+  value: function(...texts) {
+    for (let text of texts) document.body.innerHTML += text.toString();
+  },
 });
 Object.defineProperty($debug , "echo", {
   configurable: false,

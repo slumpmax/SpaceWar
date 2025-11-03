@@ -25,7 +25,8 @@ function customImage(img) {
   self.w = self.h = self.ox = self.oy = self.ow = self.oh = 0;
   self.onload = function() {
     this.adjustScale();
-    if (window.customImage.loading) window.customImage.loading--;
+    if (window.customImage.loading > 0) window.customImage.loading--;
+    // console.log(`Ready ${window.customImage.loading}: ${self.src}`);
   }
   self.onerror = function() {
     console.log(`Failed to load image "${self.src}"`);
@@ -271,6 +272,7 @@ function customImage(img) {
   if (img.src != undefined) {
     self.src = img.src + (self.cache ? `?v=${self.cache}` : '');
     window.customImage.loading++;
+    // console.log(img.src);
   }
   return self;
 }

@@ -37,43 +37,43 @@ function hiscorePanel(arg) {
         base: self.base,
         action: 'panel.load',
       },
-      json: true,
-      callback: function(obj, status) {
-        if (status == 200) {
-          let e = document.createElement('div');
-          document.body.appendChild(e);
-          e.outerHTML = obj.html;
-          self.have = true;
-          let epanel = document.getElementById('hiscore_panel');
-          let elist = document.getElementById('hiscore_panel_list');
-          epanel.addEventListener('touchstart', function(event) {
-            event.preventDefault();
-            self.ypos = event.touches[0].clientY;
-            self.time = (new Date()).getTime();
-            self.ny = self.dy = 0;
-          }, { passive: false });
-          epanel.addEventListener('touchmove', function(event) {
-            event.preventDefault();
-            let etime = (new Date()).getTime();
-            self.ny = self.ypos - event.touches[0].clientY;
-            elist.scrollBy({ top: self.ny });
-            self.ypos = event.touches[0].clientY;
-            self.time = etime;
-          }, { passive: false });
-          epanel.addEventListener('touchend', function(event) {
-            event.preventDefault();
-            if (self.interval) {
-              clearInterval(self);
-              self.interval = null;
-            }
-            self.dy = self.ny * self.delay;
-            self.scroll();
-          }, { passive: false });
-          document.getElementById('hiscore_button_new').addEventListener('click', function(event) { self.click_new(event) });
-          document.getElementById('hiscore_button_new').addEventListener('touchstart', function(event) { self.click_new(event) }, { passive: false });
-          if (callback) callback();
-        }
-      },
+      type: 'json',
+    }).then(rsp=>{
+      if (rsp.ok) {
+        const obj = rsp?.content || {}
+        let e = document.createElement('div');
+        document.body.appendChild(e);
+        e.outerHTML = obj.html;
+        self.have = true;
+        let epanel = document.getElementById('hiscore_panel');
+        let elist = document.getElementById('hiscore_panel_list');
+        epanel.addEventListener('touchstart', function(event) {
+          event.preventDefault();
+          self.ypos = event.touches[0].clientY;
+          self.time = (new Date()).getTime();
+          self.ny = self.dy = 0;
+        }, { passive: false });
+        epanel.addEventListener('touchmove', function(event) {
+          event.preventDefault();
+          let etime = (new Date()).getTime();
+          self.ny = self.ypos - event.touches[0].clientY;
+          elist.scrollBy({ top: self.ny });
+          self.ypos = event.touches[0].clientY;
+          self.time = etime;
+        }, { passive: false });
+        epanel.addEventListener('touchend', function(event) {
+          event.preventDefault();
+          if (self.interval) {
+            clearInterval(self);
+            self.interval = null;
+          }
+          self.dy = self.ny * self.delay;
+          self.scroll();
+        }, { passive: false });
+        document.getElementById('hiscore_button_new').addEventListener('click', function(event) { self.click_new(event) });
+        document.getElementById('hiscore_button_new').addEventListener('touchstart', function(event) { self.click_new(event) }, { passive: false });
+        if (callback) callback();
+      }
     });
   }
   self.click_new = function(event) {
@@ -89,24 +89,24 @@ function hiscorePanel(arg) {
     request_html({
       url: self.api_url,
       data: arg,
-      json: true,
-      callback: function(obj, status) {
-        let elist = document.getElementById('hiscore_panel_list');
-        elist.innerHTML = '';
-        if (obj.scores) for (var n = 0; n < obj.scores.length; n++) {
-          var score = obj.scores[n];
-          var d = document.createElement('div');
-          d.className = 'hiscore_panel_score';
-          d.innerHTML = `<img class="hiscore_img_score" id="hiscore_img${n}" src="/chaom/pic/avatar/i${score.secure}-${score.id}/y140/s/c64,64,,14">
-          <span class="hiscore_panel_detail">
-            <div class="hiscore_label_name" id="hiscore_name${n}">${score.name}</div>
-            <div class="hiscore_label_score" id="hiscore_score${n}">${score.score}</div>
-          </span>`;
-          elist.appendChild(d);
-        }
-        elist.scrollTop = 0;
-        document.getElementById('hiscore_panel').style.visibility = 'visible';
-      },
+      type: 'json',
+    }).then(rsp=>{
+      const obj = rsp?.content || {}
+      let elist = document.getElementById('hiscore_panel_list');
+      elist.innerHTML = '';
+      if (obj.scores) for (var n = 0; n < obj.scores.length; n++) {
+        var score = obj.scores[n];
+        var d = document.createElement('div');
+        d.className = 'hiscore_panel_score';
+        d.innerHTML = `<img class="hiscore_img_score" id="hiscore_img${n}" src="/chaom/pic/avatar/i${score.secure}-${score.id}/y140/s/c64,64,,14">
+        <span class="hiscore_panel_detail">
+          <div class="hiscore_label_name" id="hiscore_name${n}">${score.name}</div>
+          <div class="hiscore_label_score" id="hiscore_score${n}">${score.score}</div>
+        </span>`;
+        elist.appendChild(d);
+      }
+      elist.scrollTop = 0;
+      document.getElementById('hiscore_panel').style.visibility = 'visible';
     });
   }
   self.hide = function() {
@@ -127,13 +127,13 @@ function hiscorePanel(arg) {
     request_html({
       url: self.api_url,
       data: data,
-      json: true,
-      callback: function (obj, status) {
-        if (status == 200) {
-          self.token = obj.token;
-          if (callback) callback();
-        }
-      },
+      type: 'json',
+    }).then(rsp=>{
+      if (rsp.ok) {
+        const obj = rsp?.content || {}
+        self.token = obj.token;
+        if (callback) callback();
+      }
     });
   }
   self.score_update = function(callback) {
@@ -149,15 +149,9 @@ function hiscorePanel(arg) {
     request_html({
       url: '/main/module/app/api.score',
       data: data,
-      json: true,
-      callback: function (obj, status) {
-        if (status == 200 && callback) callback();
-      },
+      type: 'json',
+    }).then(rsp=>{
+      if (rsp.ok && callback) callback();
     });
   }
-  // window.addEventListener('click', function(event) {
-    // if (event.target.id == 'hiscore_button_new') {
-      // if (self.newgame) self.newgame(event);
-    // }
-  // });
 }

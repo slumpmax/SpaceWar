@@ -1003,6 +1003,7 @@ function startApp() {
   context.lineCap = 'round';
   context.lineJoin = 'round';
   context.textAlign = 'left';
+  initGame();
   window.addEventListener('resize', resizeWindow);
   window.addEventListener('orientationchange', resizeWindow);
   canvas.addEventListener('touchstart', ()=>{ touchMe(event, true) });
@@ -1017,6 +1018,5 @@ function startApp() {
   window.addEventListener('blur', blurMe);
   window.addEventListener('visibilitychange', seeMe);
   window.focus();
-  initGame();
   startGame();
 }
