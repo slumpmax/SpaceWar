@@ -8,6 +8,7 @@ function sourceData(args) {
   this._.uri = args._.uri != undefined ? args._.uri : '';
   this._.liff_start = args._.liff_start != undefined ? args._.liff_start : false;
   this._.secure = args._.secure != undefined ? args._.secure : '';
+  if (args._.move) history.replaceState('', '', args._.move + location.hash);
   for (let k in args) {
     if (this[k] == undefined) this[k] = args[k];
   }
@@ -24,26 +25,26 @@ function sourceData(args) {
     if (url !== '' && url.substr(0, 1) != '/') url = `/${url}`;
     return `${this._.path}${url}`;
   }
-  this.api = (args, callback)=>{
+  this.api = (args)=>{
     if (args._ == undefined) args._ = {};
     if (args._.base == undefined) args._.base = this._.base;
     if (args._.page == undefined) args._.page = this._.page;
     if (args._.secure == undefined) args._.secure = this._.secure || '';
     if (args.api == undefined) args.api = '';
     if (args._.page.substr(0, 1) != '/' && args._.page.toString() !== '') args._.page = `/${args._.base}/${args._.page}`;
+    if (typeof window.__TAURI__ == 'object') return this.invoke('api', { data: args });
     const url = args?.url == undefined ? this._url('api' + (args?.api ? `.${args.api}` : '')) : args.url;
-    let data = {
+    return request_html({
       url: url,
       query: args.query || '',
       data: args,
       type: 'json',
-    }
-    if (typeof window.__TAURI__ == 'object') return window.__TAURI__.core?.invoke == 'function' ? window.__TAURI__.core.invoke(args.api || '', data) : this.invoke(data);
-    return request_html(data);
+    });
   }
-  this.invoke = (data)=>{
+  this.invoke = (api, data)=>{
+    if (typeof window.__TAURI__.core?.invoke == 'function') return window.__TAURI__.core.invoke(api, data);
     return new Promise(function(resolve, reject) {
-      resolve();
+      resolve({});
     });
   }
   this.embed = (editor, args)=>{

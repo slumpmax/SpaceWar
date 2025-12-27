@@ -995,6 +995,9 @@ function resizeWindow() {
   drawScene(true);
 }
 function startApp() {
+  source.api({ api: 'greet', name: 'Tee' }).then((e)=>{ alert($debug.text(e)); });
+  source.invoke('greet', { name: 'Tom' }).then((e)=>{ alert($debug.text(e)); });
+  source.invoke('bye', { name: 'Tom' }).then((e)=>{ alert($debug.text(e)); });
   canvas = document.getElementById('main_canvas');
   context = canvas.getContext('2d');
   context.fillStyle = "#FFFF00";
