@@ -1,0 +1,964 @@
+unit FormMain;
+
+interface
+
+uses
+  XPEngine, XPRoutine, XPBitmap, XPFrameRate, XPTime, XPKey,
+  XPList, CUFont,
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, ExtCtrls, Types, AppEvnts, Math, StdCtrls;
+
+const
+  XScreen = 360;
+  YScreen = 240;
+  XMin = 0;
+  YMin = 0;
+  XMax = 259;
+  YMax = 239;
+
+type
+  TMainForm = class(TForm)
+    MainAppEvents: TApplicationEvents;
+    MainPaintBox: TPaintBox;
+    procedure WMEraseBkgnd(var msg: TWMEraseBkgnd); message WM_EraseBkgnd;
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure FormResize(Sender: TObject);
+    procedure MainAppEventsIdle(Sender: TObject; var Done: Boolean);
+    procedure MainPaintBoxPaint(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
+  private
+    FrameRate: TXPFrameRate;
+    MainFont: TCUFont;
+    MainKey: TXPKey;
+    MainTime: TXPTime;
+    MainSprite: TXPBitmapList;
+    DrawLayer, ScreenLayer: TXPBitmap;
+    Rocket1, Rocket2, MyGun: TXPBitmap;
+    EnemyBitmap: array[0..15] of TXPBitmap;
+    Enemy, CStar: array[0..19] of Integer;
+    HEnemy, WEnemy, XEnemy, YEnemy: array[0..19] of Integer;
+    EnemyIndex, EnemyDelay, KEnemy: Integer;
+    PassDelay, TitleDelay: Integer;
+    YStar, Stage, Bomb, Power, Shoot: Integer;
+    Life, Damage, XRocket, YRocket: Integer;
+    Xgun, YGun, XOld, YOld, XBoom, YBoom: Integer;
+    Retrace, Boom, Started, ShowFPS: Boolean;
+    Score: Int64;
+    procedure UpdateScreen(Updated: Boolean = True);
+    procedure InitState;
+    procedure PutStar;
+    procedure PutRocket;
+    procedure ShowPow;
+    procedure Gun;
+    procedure Toom;
+    function Hit(i: Integer): Boolean;
+    function Beat(i: Integer): Boolean;
+    procedure NewEnemy(i: Integer);
+    procedure MoveEnemy(i: Integer);
+    procedure PutEnemySprite(i: Integer);
+    function PutEnemy: Boolean;
+    function PassGame: Boolean;
+    procedure PutSprite(px, py: Integer; spr: TXPBitmap);
+    procedure PutMono(px, py: Integer; spr: TXPBitmap; c32: TColor32);
+    procedure PutText(px, py: Integer; AText: string; c32: TColor32);
+    procedure PutNumber(px, py: Integer; ANumber: Int64; c32: TColor32; digit: Integer = 0);
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  MainForm: TMainForm;
+
+implementation
+
+{$R *.dfm}
+
+const
+  EnemyMap: array[0..527] of Byte = (
+    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+    1,2,1,2,1,1,2,1,1,2,1,2,2,1,2,2,2,2,2,2,2,1,2,2,2,2,1,2,2,2,1,
+    2,2,2,2,1,2,2,2,2,6,2,1,2,2,6,9,2,2,1,2,6,2,2,6,1,2,1,6,2,2,6,
+    2,6,2,6,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,6,2,2,1,6,6,1,1,2,6,2,
+    6,2,2,1,6,1,6,2,2,1,2,1,6,2,2,10,6,1,2,2,2,2,6,2,2,2,2,6,2,2,6,
+    2,6,2,2,6,2,1,2,1,2,6,2,2,2,6,1,2,2,6,2,2,6,2,2,2,2,1,2,6,2,2,
+    2,6,2,2,1,2,6,2,2,2,6,2,1,6,9,2,6,2,2,2,2,6,2,6,2,6,2,2,2,6,1,
+    1,2,6,2,2,6,2,2,3,6,2,2,6,1,2,2,2,2,2,2,2,2,2,6,1,2,6,2,2,1,2,
+    2,1,1,6,3,2,2,6,2,2,6,2,1,2,6,3,2,2,6,2,2,2,6,3,6,2,2,2,6,2,2,
+    2,6,3,2,6,2,2,2,6,2,3,2,6,2,2,6,2,2,2,3,2,2,6,2,2,3,6,2,2,2,6,
+    3,2,2,6,2,2,2,6,3,2,2,6,2,2,3,10,2,2,2,2,2,2,3,6,2,2,2,6,2,6,2,
+    2,6,2,2,2,6,2,2,6,3,2,2,6,2,2,6,2,3,6,2,2,6,2,2,6,2,6,3,6,2,2,
+    2,6,3,2,2,6,2,6,3,2,6,2,2,2,6,3,6,2,2,2,3,2,2,6,2,6,3,6,2,2,2,
+    3,6,2,6,2,2,6,3,2,2,2,6,3,6,2,3,2,2,3,2,2,3,6,3,1,3,6,2,6,2,2,
+    1,1,1,1,1,1,6,3,6,2,6,2,3,2,6,9,2,3,2,6,2,3,2,2,6,3,2,3,6,2,2,
+    1,2,6,2,3,2,3,6,2,1,3,2,3,1,6,2,3,2,3,3,2,3,6,2,6,3,3,3,6,2,3,
+    6,3,2,3,3,6,2,6,3,2,1,6,3,3,6,1,3,6,1,1,6,1,2,2,6,3,2,3,1,6,2,
+    11
+  );
+  EnemyScore: array[0..12] of Integer = (
+    500,75,2000,15,7000000,0,100000,0,0,0,10000,300000,10000000
+  );
+
+
+procedure TMainForm.FormCreate(Sender: TObject);
+var
+  n: Integer;
+begin
+  MainFont := TCUFont.Create;
+  MainKey := TXPKey.Create;
+  FrameRate := TXPFrameRate.Create;
+  MainSprite := TXPBitmapList.Create;
+  MainSprite.LoadFromResource('WarSprite.bms');
+  MainTime := TXPTime.Create(14);
+  ScreenLayer := TXPBitmap.Create;
+  DrawLayer := TXPBitmap.Create;
+  DrawLayer.Width := XScreen;
+  DrawLayer.Height := YScreen;
+  DrawLayer.ClipRect := Bounds(0, 0, XMax + 1, YMax + 1);
+  DrawLayer.SourceMode := False;
+  Stage := 0;
+  Score := 0;
+  Bomb := 3;
+  Life := 3;
+  Damage := 200;
+  EnemyDelay := 200;
+  KEnemy := 0;
+  YStar := 0;
+  PassDelay := 200;
+  TitleDelay := 200;
+  Boom := False;
+  Started := True;
+  ShowFPS := False;
+  Rocket1 := MainSprite[0];
+  Rocket2 := MainSprite[1];
+  MyGun := MainSprite[2];
+  for n := 0 to 19 do Enemy[n] := 0;
+  for n := 0 to 15 do	EnemyBitmap[n] := MainSprite[3 + n];
+  Retrace := True;
+  for n := YMin to YMax do PutStar; // dummy for random star
+  Retrace := False;
+  Randomize;
+  MainTime.Start;
+end;
+
+procedure TMainForm.FormDestroy(Sender: TObject);
+begin
+  MainKey.Free;
+  MainFont.Free;
+  MainSprite.Free;
+  ScreenLayer.Free;
+  DrawLayer.Free;
+  FrameRate.Free;
+  MainTime.Free;
+end;
+
+procedure TMainForm.FormKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  case Key of
+    VK_F1:
+    begin
+      if (WindowState = wsMaximized) and (BorderStyle = bsNone) then
+      begin
+        BorderStyle := bsSizeable;
+        WindowState := wsNormal;
+        Cursor := crDefault;
+      end
+      else
+      begin
+        BorderStyle := bsNone;
+        WindowState := wsMaximized;
+        Cursor := crNone;
+      end;
+    end;
+    VK_F2: ShowFPS := not ShowFPS;
+    VK_ESCAPE: Close;
+  else
+    MainKey.Update(Key, True);
+  end;
+  Key := 0;
+end;
+
+procedure TMainForm.FormKeyUp(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  MainKey.Update(Key, False);
+  Key := 0;
+end;
+
+procedure TMainForm.InitState;
+begin
+  EnemyIndex := 0;
+  EnemyDelay := 200;
+  Power := 10;
+end;
+
+procedure TMainForm.UpdateScreen(Updated: Boolean = True);
+var
+  n: Integer;
+begin
+  Retrace := MainTime.OneCount and Updated;
+  DrawLayer.ClipRight := XSCreen;
+  DrawLayer.BrushColor := c32Black;
+  DrawLayer.FillRect;
+  DrawLayer.BrushColor := $FF000065;
+  DrawLayer.FillRect(Bounds(260, 0, 360, 240));
+  if Stage < 1 then
+    n := 1
+  else if Stage > 3 then
+    n := 3
+  else n := Stage;
+  PutText(290, 10, 'ฉาก', $FF309AFF);
+  PutNumber(320, 10, n, $FF00CB30);
+  PutText(290, 30, 'คะแนน', $FF309AFF);
+  PutNumber(268, 47, Score, $FF00CB30, 10);
+  PutText(270, 70, 'ระเบิด:', $FF309AFF);
+  PutNumber(320, 70, Bomb, $FF00CB30, 2);
+  PutText(280, 110, 'พลังงาน', $FF309AFF);
+  PutText(310, 170, 'x', $FF309AFF);
+  PutNumber(324, 170, Life, $FF00CB30, 2);
+  PutSprite(280, 170, Rocket1);
+  ShowPow;
+  DrawLayer.ClipRight := XMax;
+  PutStar;
+  if Started then
+  begin
+    InitState;
+    TitleDelay := 200;
+    Started := False;
+  end
+  else
+  begin
+    if (TitleDelay <> 0) and (Stage > 0) and (Stage < 4) then
+    begin
+      if Retrace then Dec(TitleDelay);
+      if TitleDelay <> 0 then
+      begin
+        PutText(48, 70, Format('ฉาก %d สู้ตายเพื่อท่านปึ๋ย!', [Stage]), $FF30CB00);
+      end;
+    end;
+    if Stage = 0 then
+    begin
+      PutText(30, 50, 'CTRL:ยิง ALT:ระเบิด ESC:ออก', $FF30CB00);
+      PutText(55, 70, 'F1:เต็มจอ F2:เฟรมเรต', $FF30CB00);
+      PutText(55, 150, 'กดอะไรก็ได้เพื่อเริ่มเกมส์', $FF30CB00);
+      if MainKey.LastKeyDown <> 0 then Inc(Stage);
+    end
+    else if Stage > 3 then
+    begin
+      PutText(35, 70, 'ดูเด่ะ เล่นมาตั้งนาน จบเฉยเลย', $FF30CB00);
+      PutText(18, 95, 'โปรแกรมโดย เชษฐา เจนจิโรจพิพัฒน์', $FF30CB00);
+      PutText(28, 120, 'Windows Engine by SLUMPMAX', $FF3000CB);
+    end
+    else if PutEnemy then if PassGame then Started := True;
+    if (Life > 0) then
+    begin
+      PutRocket;
+      Gun;
+      Toom;
+    end
+    else
+    begin
+      YRocket := 240;
+      PutText(28, 70, 'นักรบพลีชีพหมดแล้ว ท่านปึ๋ยจงเจริญ!', $FF30CB00);
+      PutText(18, 95, 'โปรแกรมโดย เชษฐา เจนจิโรจพิพัฒน์', $FF30CB00);
+      PutText(28, 120, 'Windows Engine by SLUMPMAX', $FF3000CB);
+    end;
+  end;
+  if ShowFPS then DrawLayer.TextOutLine(10, 10, Format('Frame Rate: %.2f FPS', [FrameRate.Update]), clWhite, clBlack);
+end;
+
+procedure TMainForm.FormResize(Sender: TObject);
+begin
+  ScreenLayer.Width := MainPaintBox.Width;
+  ScreenLayer.Height := MainPaintBox.Height;
+  MainPaintBox.Invalidate;
+end;
+
+procedure TMainForm.WMEraseBkgnd(var msg: TWMEraseBkgnd);
+begin
+  msg.Result := 1;
+end;
+
+procedure TMainForm.MainAppEventsIdle(Sender: TObject;
+  var Done: Boolean);
+begin
+  if Assigned(DrawLayer) then
+  begin
+    UpdateScreen;
+    MainPaintBox.Invalidate;
+  end;
+end;
+
+procedure TMainForm.MainPaintBoxPaint(Sender: TObject);
+begin
+  DrawLayer.ClearClipRect;
+  ScreenLayer.Draw(ScreenLayer.ClipRect, DrawLayer);
+  ScreenLayer.Draw(MainPaintBox.Canvas, 0, 0);
+end;
+
+// draw black ground star
+procedure TMainForm.PutStar;
+var
+  i, j, p, n: Integer;
+begin
+  i := 0;
+  n := 0;
+  while i < 240 do
+  begin
+    j := i + YStar;
+  	if j > 241 then j := j - 242;
+  	if j = 0 then CStar[n] := Random(260);
+  	p := CStar[n];
+    Inc(n);
+  	if j < 240 then
+    begin
+      DrawLayer.BrushColor := $FF659ACB;
+      DrawLayer.PutPixel(p, j);
+    end;
+    Inc(i, 12);
+  end;
+  if Retrace then
+  begin
+    Inc(YStar);
+    if YStar > 241 then YStar := YStar - 242;
+  end;
+end;
+
+// Show power
+procedure TMainForm.ShowPow;
+var
+  n: Integer;
+begin
+  DrawLayer.BrushColor := c32Black;
+  DrawLayer.FillRect(Bounds(284, 132, 43, 6));
+  DrawLayer.BrushColor := $FFFFFF65;
+  n := Power;
+  if n > 10 then n := 10;
+  while n >= 0 do
+  begin
+    DrawLayer.FillRect(Bounds(284 + n * 4, 132, 3, 6));
+    Dec(n);
+  end;
+end;
+
+// draw my rocket
+procedure TMainForm.PutRocket;
+const
+  k: Integer = 0; // variable for swap rocket picture
+  m: Integer = 0; // variable for start rocket
+  b: Integer = 100; // boom
+begin
+  if Damage = 200 then
+  begin
+    PInt(@m)^ := 70;
+    Power := 11;
+  end;
+  if ((Power < 0) or (YRocket > 212)) and (m = 0) then
+  begin
+  	Power := -1;
+    if Retrace or not Boom then
+    begin
+      XBoom := XRocket + Random(30) - 10;
+      YBoom := YRocket + Random(30) - 10;
+      Boom := True;
+    end;
+  	PutSprite(XBoom, YBoom, EnemyBitmap[13]);
+    if Retrace then
+    begin
+      Dec(PInt(@b)^);
+    	if b = 0 then
+      begin
+        PInt(@b)^ := 100;
+        Damage := 201;
+        Dec(Life);
+        Boom := False;
+      end;
+    end;
+  end
+  else
+  begin
+  	XOld := XRocket;
+    YOld := YRocket;
+  	if m <> 0 then
+    begin
+      XRocket := 110;
+      YRocket := m * 2 + 100;
+    end;
+    if Retrace then
+    begin
+      if m <> 0 then Dec(PInt(@m)^);
+      XRocket := XRocket + (MainKey[VK_RIGHT] - MainKey[VK_LEFT]) * 3;
+      YRocket := YRocket + (MainKey[VK_DOWN] - MainKey[VK_UP]) * 3;
+	    if OutsideInt(XRocket, 0, 233) then XRocket := XOld;
+ 	    if OutsideInt(YRocket, 0, 212) then YRocket := YOld;
+    end;
+  	if (DaMage and 3) = 1 then
+    begin
+      if (k and 4) > 0 then
+        PutMono(XRocket, YRocket, Rocket1, c32White)
+      else PutMono(XRocket, YRocket, Rocket2, c32White);
+    end
+	  else if (k and 4) > 0 then
+      PutSprite(XRocket, YRocket, Rocket1)
+    else PutSprite(XRocket, YRocket, Rocket2);
+  end;
+  if Retrace then
+  begin
+    if Damage = 40 then Dec(Power);
+    if Damage <> 0 then Dec(Damage);
+    Inc(PInt(@k)^);
+  end;
+end;
+
+// check and draw gun
+procedure TMainForm.Gun;
+begin
+  Shoot := Shoot or MainKey[VK_CONTROL];
+  if (Shoot = 0) or (Power < 0) then Exit;
+  if Retrace then
+  begin
+    if Shoot = 1 then
+    begin
+      Shoot := 2;
+      XGun := XRocket + 10;
+      YGun := YRocket + 14;
+    end;
+    Dec(YGun, 20);
+    if YGun < -10 then Shoot := 0;
+  end;
+  PutSprite(XGun, YGun, MyGun);
+  if YGun <> YRocket - 6 then PutSprite(XGun, YGun + 10, MyGun);
+end;
+
+// bomb enermy
+procedure TMainForm.Toom;
+var
+  i: Integer;
+begin
+  i := 0;
+  if not MainKey.PressOnce(VK_MENU) or (Bomb = 0) then Exit;
+  if InsideInt(Enemy[0], 11, 13) then
+  begin
+    if HEnemy[0] <= 0 then Exit;
+    Inc(i);
+    Shoot := 0;
+    if HEnemy[0] = 8 then
+      HEnemy[0] := HEnemy[0] - 9
+    else HEnemy[0] := HEnemy[0] - 8;
+    WEnemy[0] := 40;
+  end
+  else EnemyDelay := 200;
+  Dec(Bomb);
+  while i < 20 do
+  begin
+    if Enemy[i] > 0 then Score := Score + EnemyScore[Enemy[i] - 1];
+  	if (Enemy[i] = 4) or (Enemy[i] = 8) then
+      Enemy[i] := 0
+  	else if (Enemy[i] > 0) and (Enemy[i] <> 6) and (Enemy[i] <> 9) and (Enemy[i] <> 10) then
+    begin
+	    Enemy[i] := -10;
+    end;
+    Inc(i);
+  end;
+end;
+
+function TMainForm.Hit(i: Integer): Boolean;
+begin
+// return 1 when gun hit sprite
+  Result := (Shoot <> 0)
+    and InsideInt(XGun, XEnemy[i] - 3, XEnemy[i] + 1 + EnemyBitmap[Enemy[i] - 1].Width)
+    and InsideInt(YGun, YEnemy[i] - 20, YEnemy[i] + EnemyBitmap[Enemy[i] - 1].Height);
+end;
+
+function TMainForm.Beat(i: Integer): Boolean;
+begin
+// return 1 when rocket hit sprite
+  Result := (Power >= 0)
+    and InsideInt(XRocket + 10, XEnemy[i] - 6, XEnemy[i] + EnemyBitmap[Enemy[i] - 1].Width)
+    and InsideInt(YRocket + 10, YEnemy[i] - 6, YEnemy[i] + EnemyBitmap[Enemy[i] - 1].Height);
+end;
+
+procedure TMainform.NewEnemy(i: Integer);
+var
+  j: Integer;
+begin
+  case Enemy[i] of
+    1: // Killer
+    begin
+      XEnemy[i] := Random(XMax - 24);
+    end;
+    2: // Warper
+    begin
+	    XEnemy[i] := Random(XMax - 20);
+      if XEnemy[i] < (XMax - 10) div 2 then
+        WEnemy[i] := 2
+      else WEnemy[i] := -2;
+        HEnemy[i] := Random(190) + 30;
+  	  end;
+    3: //Bird
+    begin
+      XEnemy[i] := Random(XMax - 21);
+      WEnemy[i] := 0;
+      HEnemy[i] := Random(100) - 80;
+  	end;
+    4: // Ring
+      begin
+        EnemyDelay := 20;
+        Enemy[i] := 0;
+		  end;
+    5: // Slam
+    begin
+  	  XEnemy[i] := Random(XMax - 24);
+  	  WEnemy[i] := 0;
+  	  HEnemy[i] := 2;
+  	end;
+    6: // Stone
+    begin
+		  XEnemy[i] := Random(XMax - 15);
+		end;
+    7: // Head
+    begin
+  	  XEnemy[i] := Random(XMax - 18);
+  	  WEnemy[i] := 2;
+    end;
+		8: // Fire
+    begin
+  	  XEnemy[i] := Random(EnemyBitmap[Enemy[0] - 1].Width) + XEnemy[0];
+  	  WEnemy[i] := Abs(XRocket - XEnemy[i]);
+      HEnemy[i] := Abs(YRocket - YEnemy[i]);
+  	  if (WEnemy[i] shr 1) = (HEnemy[i] shr 1) then
+        WEnemy[i] := Random(3) + 1
+  	  else if WEnemy[i] > HEnemy[i] then
+  	    if WEnemy[i] > (HEnemy[i] shl 2) then
+          WEnemy[i] := Random(3) + 2
+    		else WEnemy[i] := Random(4) + 1
+  	  else if HEnemy[i] > (WEnemy[i] shl 2) then
+        WEnemy[i] := Random(2)
+    	else WEnemy[i] := Random(3);
+  	    HEnemy[i] := 4 - WEnemy[i];
+		  if ((Random(2) <> 0) and (WEnemy[i] < 2)) or ((WEnemy[i] > 1) and (XRocket < XEnemy[i])) then
+        WEnemy[i] := -WEnemy[i];
+		  if YRocket < YEnemy[i] then HEnemy[i] := -HEnemy[i];
+	  end;
+    9, 10: // ItemB,ItemP
+    begin
+  	  XEnemy[i] := Random(XMax - 17);
+    end;
+		11, 12, 13: // Boss1, Boss2, Boss3
+    begin
+  	  for j := 0 to 19 do
+      begin
+        if (Enemy[j] <> 0) and (i <> j) then Break;
+      end;
+	    if j < 20 then
+      begin
+        Enemy[i] := 0;
+        Dec(EnemyIndex);
+        Exit;
+      end;
+		  if i <> 0 then
+      begin
+        Enemy[0] := Enemy[i];
+        Enemy[i] := 0;
+      end;
+		  XEnemy[0] := 90;
+		  YEnemy[0] := 10;
+  	  WEnemy[0] := 0;
+  	  HEnemy[0] := 60;
+  	  KEnemy := 0;
+	  end;
+    14: // Boom1, Boom2, Boom3
+    begin
+  	  XEnemy[i] := Random(EnemyBitmap[Enemy[0] - 1].Width + 10) + XEnemy[0] - 15;
+  	  YEnemy[i] := Random(EnemyBitmap[Enemy[0] - 1].Height + 10) + YEnemy[0] - 15;
+  	  WEnemy[i] := 60;
+    end;
+  end;
+end;
+
+procedure TMainform.MoveEnemy(i: Integer);
+var
+  hurt, strike, dead: Boolean;
+  j: Integer;
+begin
+  if Enemy[i] < 0 then
+  begin
+ 	  Inc(YEnemy[i], 3);
+    Inc(Enemy[i]);
+  end
+  else if Enemy[i] > 0 then
+  begin
+    dead := False;
+    hurt := Beat(i);
+    strike := Hit(i);
+   	case Enemy[i] of
+      6:
+      begin
+  	    if strike then Shoot := 0;
+    	  if hurt then
+        begin
+          XRocket := XOld;
+          YOld := YOld + 4;
+          YRocket := YOld;
+        end;
+        Inc(YEnemy[i]);
+      end;
+      7:
+      if (WEnemy[i] <> 0) and not hurt then
+      begin
+        if Random(100) = 0 then
+        for j := 0 to 19 do if Enemy[j] = 0 then
+        begin
+     			Enemy[j] := 4;
+     			XEnemy[j] := XEnemy[i] + 3;
+     			YEnemy[j] := YEnemy[i] + 8;
+     			if Abs(XRocket - XEnemy[j]) > Abs(YRocket - YEnemy[j]) then
+          begin
+     		    WEnemy[j] := 2;
+            HEnemy[j] := 1;
+     		  end
+          else
+          begin
+            WEnemy[j] := 1;
+            HEnemy[j] := 2;
+          end;
+     			if XRocket < XEnemy[j] then WEnemy[j] := -WEnemy[j];
+     			if YRocket < YEnemy[j] then HEnemy[j] := -HEnemy[j];
+     			Break;
+   	    end;
+   	    if strike then
+        begin
+          Dec(WEnemy[i]);
+          Dec(YEnemy[i], 6);
+          Shoot := 0;
+        end;
+        Inc(YEnemy[i]);
+      end
+      else dead := True;
+      8:
+      begin
+        if (Damage = 0) and hurt then Damage := 40;
+   	    XEnemy[i] := XEnemy[i] + WEnemy[i];
+   	    YEnemy[i] := YEnemy[i] + HEnemy[i];
+   	  end;
+      9:
+      begin
+  	    if hurt then
+        begin
+          Enemy[i] := 0;
+          Inc(Bomb);
+        end;
+        Inc(YEnemy[i]);
+      end;
+      10:
+      begin
+    	  if hurt and (Power < 11) then
+        begin
+       		Enemy[i] := 0;
+          Power := Power + 4;
+          if Power > 10 then Power := 10;
+     	  end;
+    	  Inc(YEnemy[i]);
+      end;
+      11, 12, 13:
+      begin
+        if (strike and (HEnemy[i] > 0)) or (HEnemy[i] < 0) then
+        begin
+       		Shoot := 0;
+          if WEnemy[i] = 0 then
+          begin
+   		      WEnemy[i] := 40;
+            if HEnemy[i] > 0 then
+              HEnemy[i] := HEnemy[i] - 1
+            else HEnemy[i] := 0;
+            if HEnemy[i] = 0 then KEnemy := 500;
+          end;
+        end;
+        if WEnemy[i] <> 0 then Dec(WEnemy[i]);
+     	  if HEnemy[i] = 0 then
+        begin
+          Dec(KEnemy);
+          if KEnemy < 100 then Inc(YEnemy[i]);
+        end
+    	  else
+        begin
+          if (Damage = 0) and hurt then Damage := 40;
+       		case Enemy[i] of
+         		12:
+            begin
+              if XEnemy[i] > XMax - 51 then
+                KEnemy := 0
+              else if XEnemy[i] < XMin then KEnemy := 1;
+         			if KEnemy <> 0 then
+                Inc(XEnemy[i])
+              else Dec(XEnemy[i]);
+            end;
+       		  13:
+            begin
+              if XEnemy[i] > XMax - 54 then
+              begin
+                KEnemy := 1;
+                Dec(XEnemy[i], 2);
+              end
+     		      else if YEnemy[i] > YMax - 79 then
+              begin
+                KEnemy := 2;
+                Dec(YEnemy[i], 2);
+              end
+  		        else if XEnemy[i] < XMin then
+              begin
+                KEnemy := 3;
+                Inc(XEnemy[i], 3);
+              end
+   	          else if YEnemy[i] < YMin then
+              begin
+                KEnemy := 0;
+                Inc(YEnemy[i], 2);
+              end;
+              if KEnemy = 0 then
+                Inc(XEnemy[i], 2)
+              else if KEnemy = 2 then Dec(XEnemy[i], 3);
+              if KEnemy = 1 then
+                Inc(YEnemy[i], 2)
+              else if KEnemy = 3 then Dec(YEnemy[i], 2);
+     	    	end;
+   	      end;
+   	    end;
+      end;
+      14:
+      begin
+        Dec(WEnemy[i]);
+  	    if WEnemy[i] <> 0 then
+          Dec(YEnemy[i], 2)
+    	  else
+        begin
+          Enemy[i] := 0;
+          Exit;
+        end;
+      end;
+    else
+      if (Enemy[i] < 6) and not strike and not hurt then
+      begin
+        case Enemy[i] of
+          1: Inc(YEnemy[i], 4);
+      	  2:
+          begin
+            if YEnemy[i] > HEnemy[i] then
+              XEnemy[i] := XEnemy[i] - WEnemy[i]
+            else XEnemy[i] := XEnemy[i] + WEnemy[i];
+            Inc(YEnemy[i], 3);
+          end;
+          3:
+          begin
+            if (WEnemy[i] = 0) and (YEnemy[i] > YRocket + HEnemy[i]) then
+            begin
+              WEnemy[i] := iif(XEnemy[i] > XRocket, -2, 2);
+            end;
+        	  XEnemy[i] := XEnemy[i] + WEnemy[i];
+            if WEnemy[i] = 0 then
+              Inc(YEnemy[i], 2)
+            else Inc(YEnemy[i]);
+          end;
+          5:
+          begin
+            if Random(20) = 0 then
+            begin
+              if YRocket > YEnemy[i] then
+                HEnemy[i] := 2
+              else if YRocket < YEnemy[i] then
+                HEnemy[i] := -2
+              else HEnemy[i] := 0;
+              if HEnemy[i] = 2 then
+                WEnemy[i] := 0
+              else if XRocket > XEnemy[i] then
+                WEnemy[i] := 2
+              else if XRocket < XEnemy[i] then
+                WEnemy[i] := -2
+              else WEnemy[i] := 0;
+           		if (WEnemy[i] <> 0) and (HEnemy[i] = -2) then HEnemy[i] := -1;
+            end;
+        	  Inc(XEnemy[i], WEnemy[i]);
+            Inc(YEnemy[i], HEnemy[i]);
+          end;
+        else
+      	  Inc(XEnemy[i], WEnemy[i]);
+          Inc(YEnemy[i], HEnemy[i]);
+        end;
+      end
+      else dead := True;
+    end;
+    if dead then
+    begin
+      Inc(Score, EnemyScore[Enemy[i] - 1]);
+      if (Damage = 0) and hurt then Damage := 40;
+      if Enemy[i] = 4 then
+        Enemy[i] := 0
+      else Enemy[i] := -10;
+      Shoot := 0;
+    end;
+  end;
+end;
+
+procedure TMainform.PutEnemySprite(i: Integer);
+begin
+  if Enemy[i] > 0 then
+  begin
+    if Enemy[i] < 11 then
+      PutSprite(XEnemy[i], YEnemy[i], EnemyBitmap[Enemy[i] - 1])
+    else case Enemy[i] of
+      11, 12, 13:
+      begin
+     	  if (WEnemy[i] and 3) = 1 then
+          PutMono(XEnemy[i], YEnemy[i], EnemyBitmap[Enemy[i] - 1], c32White)
+     	  else PutSprite(XEnemy[i], YEnemy[i], EnemyBitmap[Enemy[i] - 1]);
+      end;
+      14:
+      begin
+        if WEnemy[i] > 30 then
+          PutSprite(XEnemy[i], YEnemy[i], EnemyBitmap[13])
+        else if WEnemy[i] > 10 then
+          PutSprite(XEnemy[i], YEnemy[i], EnemyBitmap[14])
+        else PutSprite(XEnemy[i], YEnemy[i], EnemyBitmap[15]);
+      end;
+    end;
+  end
+  else if Enemy[i] < 0 then
+  begin
+  	if Enemy[i] < -4 then
+      PutSprite(XEnemy[i], YEnemy[i], EnemyBitmap[13])
+  	else if Enemy[i] < -2 then
+      PutSprite(XEnemy[i] + 2, YEnemy[i], EnemyBitmap[14])
+    else PutSprite(XEnemy[i] + 4, YEnemy[i], EnemyBitmap[15]);
+  end;
+end;
+
+// return True when stage clear
+function TMainForm.PutEnemy: Boolean;
+var
+  i, j: Integer;
+begin
+  Result := False;
+  for i := 0 to 19 do
+  begin
+    if Enemy[i] > 0 then
+    begin
+    	if OutsideInt(YEnemy[i], -50, 239) or OutsideInt(XEnemy[i], -50, 359) then
+      begin
+  	    if OutsideInt(Enemy[i], 11, 13) then
+        begin
+          Enemy[i] := 0;
+          Continue;
+        end
+  	    else
+        begin
+          for j := 1 to 19 do if Enemy[j] <> 0 then Break;
+      		if j = 20 then
+          begin
+	    	    Score := Score + EnemyScore[Enemy[i] - 1];
+            Result := Life > 0;
+            Exit;
+          end;
+        end;
+      end;
+    end;
+    PutEnemySprite(i);
+    if Retrace then MoveEnemy(i);
+  end;
+  if not Retrace then Exit;
+  if EnemyDelay <> 0 then
+    Dec(EnemyDelay)
+  else
+  begin
+    for i := 0 to 19 do
+	  if Enemy[i] = 0 then
+    begin
+      if Enemy[0] >= 11 then
+        if YEnemy[0] < 240 then
+          if HEnemy[0] <> 0 then
+            Enemy[i] := 8
+          else Enemy[i] := 14
+        else Enemy[i] := 0
+      else
+      begin
+        Enemy[i] := EnemyMap[EnemyIndex];
+        Inc(EnemyIndex);
+      end;
+		  if Stage = 2 then case Enemy[i] of
+		    1: Enemy[i] := 2;
+		    2: Enemy[i] := 3;
+		    3: Enemy[i] := 7;
+		    11: Enemy[i] := 12;
+		  end
+      else if Stage = 3 then case Enemy[i] of
+		    1: Enemy[i] := 3;
+		    2: Enemy[i] := 7;
+		    3: Enemy[i] := 5;
+		    11: Enemy[i] := 13;
+  		end;
+      if Enemy[0] >= 11 then
+        YEnemy[i] := Random(50) + YEnemy[0]
+      else YEnemy[i] := -EnemyBitmap[Enemy[i] - 1].Height;
+      NewEnemy(i);
+  		Break;
+    end;
+    if i = 20 then
+      EnemyDelay := 0
+    else if Enemy[i] = 7 then
+      EnemyDelay := Random(70)
+    else if (Enemy[i] = 6) or InsideInt(Enemy[0], 11, 13) then
+      EnemyDelay := Random(20)
+    else EnemyDelay := Random(50);
+  end;
+end;
+
+// state clear return True when ready
+function TMainForm.PassGame: Boolean;
+begin
+  if Retrace then Dec(PassDelay);
+  if PassDelay <> 0 then
+  begin
+    PutText(50, 90, Format('เย้! ผ่านฉาก %d แล้ว', [Stage]), $FF30CB00);
+    Result := False;
+  end
+  else
+  begin
+    PassDelay := 200;
+    Inc(Stage);
+    Inc(Life);
+    Enemy[0] := 0;
+    Result := True;
+  end;
+end;
+
+procedure TMainForm.PutSprite(px, py: Integer; spr: TXPBitmap);
+begin
+  DrawLayer.Draw(px, py, spr, xdmAlpha);
+end;
+
+procedure TMainForm.PutMono(px, py: Integer; spr: TXPBitmap; c32: TColor32);
+begin
+  DrawLayer.MonoColor := c32;
+  DrawLayer.Draw(px, py, spr, xdmMono);
+end;
+
+procedure TMainForm.PutText(px, py: Integer; AText: string; c32: TColor32);
+begin
+  DrawLayer.MonoColor := c32;
+  MainFont.TextOut(DrawLayer, px, py, AText);
+end;
+
+procedure TMainForm.PutNumber(px, py: Integer; ANumber: Int64; c32: TColor32; digit: Integer = 0);
+var
+  s: string;
+begin
+  if digit > 0 then
+    s := Format('%%%d.%dd', [digit, digit])
+  else s := '%d';
+  s := Format(s, [ANumber]);
+  PutText(px, py, s, c32);
+end;
+
+end.

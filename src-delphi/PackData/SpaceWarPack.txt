@@ -1,0 +1,5 @@
+%SourcePath=PicturePNG
+%TextPath=PictureText
+%DestPath=..\SourceFiles
+
+WarSprite.bms=Sprite%3.3d.png
